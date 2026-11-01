@@ -1,0 +1,12 @@
+# Build output
+/build/
+/daemon.scr
+
+# Dev capture artifacts (DAEMON_CAPTURE / ffmpeg output)
+*.bmp
+*.png
+
+# Editor / OS cruft
+*.user
+Thumbs.db
+desktop.ini

@@ -1,0 +1,260 @@
+# daemon.script — the fake console montage for the Daemon screensaver.
+#
+# EVERYTHING here is invented set-dressing for a Hollywood-style visualisation:
+# a movie prop, not a procedure. The tools (daemon, breach, exfil, crack,
+# impersonate, takeover...) do not exist; the hosts, companies, keys and figures
+# are randomised fiction; nothing here describes or enables any real attack.
+# It is the on-screen equivalent of a prop newspaper.
+#
+# Framing (per the brief): SOURCE is the operator/thief, TARGET is the victim,
+# and value — money, records, identities — always flows TARGET -> SOURCE.
+#
+# Format reference (parsed by LoadScriptFile):
+#   $ cmd            a typed command line
+#   plain text       console output (uses the current @color)
+#   @prompt          emit a new shell prompt
+#   @pause N         dwell N seconds (let the right-hand animation play)
+#   @pace s          typing speed: slow | normal | fast | flood
+#   @color #RRGGBB   output colour until changed; @color off = default grey
+#   @vis scene k=v   drive the right-hand tactical window
+#                    scenes: scan map breach crack impersonate exfil takeover idle
+#   @target [name]   no name = advance to the next (shuffled) victim org
+#   # ...            comment
+# Tokens: {TARGET}{HOST}{IP}{PORT}{USER}{HASH}{AMOUNT}{RECORDS}{CC}{ASN}{PCT}{N}{MS}
+
+# ---------------------------------------------------------------- cold boot
+@prompt
+$ whoami
+@color #6FE26F
+root
+@color off
+@pause 0.4
+
+@prompt
+$ ./daemon --wake --rig ghostwire
+@color #8FD0FF
+[daemon] cold start :: node SOURCE online
+[daemon] staging target set :: 20 enterprises queued
+@color #6FE26F
+[ok] relay chain up :: {HOST} -> {HOST} -> {HOST}
+@color #FFC14D
+[**] SOURCE masked :: origin scrubbed through {ASN}
+@color off
+@pause 0.8
+
+$ ./daemon --arm --mode world
+@color #FF5A5A
+[arm] DAEMON ARMED :: targets live :: no abort path
+@color off
+@pause 1.0
+
+# ============================================================== TARGET 01
+# Recon and perimeter breach.
+@prompt
+$ acquire --target "{TARGET}"
+@color #8FD0FF
+[acq] SOURCE acquiring TARGET {TARGET}
+[acq] resolving perimeter :: {HOST} ({IP})
+@color off
+@vis scan target={TARGET}
+@pause 1.2
+
+$ scan --deep --target "{TARGET}"
+@color #8FD0FF
+[scan] {PORT}/tcp open    {PORT}/tcp open    {PORT}/tcp filtered
+[scan] {N} hosts mapped :: {N} services fingerprinted
+[scan] soft edge found :: {HOST}
+@color off
+@pause 3.0
+
+$ route --build --source daemon --target "{TARGET}"
+@vis map target={TARGET}
+@color #8FD0FF
+[route] SOURCE -> relay({CC}) -> relay({CC}) -> TARGET
+[route] path latency {MS}ms :: corridor locked
+@color off
+@pause 2.8
+
+$ breach --target "{TARGET}" --chain auto
+@vis breach target={TARGET}
+@color #FFC14D
+[breach] SOURCE leaning on TARGET perimeter
+[breach] edge node yields :: {HOST}
+[breach] inner wall folds :: session {HASH}
+@color #6FE26F
+[ok] ACCESS GRANTED :: SOURCE stands inside {TARGET}
+@color off
+@pause 3.2
+
+# ============================================================== TARGET 02
+# Credential vault crack.
+@target
+@prompt
+$ breach --target "{TARGET}" --quiet
+@vis breach target={TARGET}
+@color #FFC14D
+[breach] SOURCE slips the {TARGET} gate :: {HOST}
+@color #6FE26F
+[ok] foothold held on {TARGET}
+@color off
+@pause 2.0
+
+$ crack --target "{TARGET}" --vault master.keyring
+@vis crack target={TARGET}
+@color #8FD0FF
+[crack] lifting the {TARGET} key vault
+[crack] {N} hashes pulled :: grinding
+[crack] {PCT}% .... {PCT}% ....
+@color #6FE26F
+[ok] MASTER KEY RECOVERED :: {HASH}
+[ok] {N} TARGET credentials now sit with SOURCE
+@color off
+@pause 3.2
+
+# ============================================================== TARGET 03
+# Identity theft and privilege escalation.
+@target
+@prompt
+$ impersonate --target "{TARGET}" --as {USER}
+@vis impersonate target={TARGET}
+@color #8FD0FF
+[id] cloning TARGET identity {USER} -> SOURCE
+[id] signing cert forged :: {HASH}
+[id] SOURCE now speaks with the voice of {TARGET}
+@color #6FE26F
+[ok] IMPERSONATION ACTIVE :: role=admin on {TARGET}
+@color off
+@pause 3.0
+
+$ escalate --target "{TARGET}" --to root
+@color #FFC14D
+[esc] walking the {TARGET} trust chain
+[esc] {USER} -> {USER} -> root
+@color #6FE26F
+[ok] SOURCE holds root over {TARGET}
+@color off
+@pause 2.8
+
+# ============================================================== TARGET 04
+# Financial drain — funds flow TARGET -> SOURCE.
+@target
+@prompt
+$ breach --target "{TARGET}" --silent
+@vis breach target={TARGET}
+@color #FFC14D
+[breach] SOURCE walks onto the {TARGET} clearing floor
+@color off
+@pause 1.6
+
+$ drain --target "{TARGET}" --ledger --to source
+@vis exfil target={TARGET}
+@color #8FD0FF
+[flow] prying open the {TARGET} ledger :: {N} accounts
+[flow] routing value TARGET -> SOURCE
+[flow] {AMOUNT} .... {AMOUNT} .... {AMOUNT}
+@color #6FE26F
+[ok] {AMOUNT} pulled from TARGET to SOURCE
+@color #FF5A5A
+[**] {TARGET} balances read zero :: trail painted over
+@color off
+@pause 3.4
+
+# ============================================================== TARGET 05
+# Mass data exfiltration — records flow TARGET -> SOURCE.
+@target
+@prompt
+$ exfil --target "{TARGET}" --store records --to source
+@vis exfil target={TARGET}
+@color #8FD0FF
+[exfil] tapping the {TARGET} record store
+[exfil] streaming TARGET -> SOURCE :: {MS}ms/block
+[exfil] {RECORDS} .... {RECORDS} ....
+@color #6FE26F
+[ok] {RECORDS} copied from TARGET to SOURCE
+[ok] names, keys and histories :: all held by SOURCE
+@color off
+@pause 3.4
+
+# ============================================================== TARGET 06
+# Full takeover and persistence.
+@target
+@prompt
+$ takeover --target "{TARGET}" --persist --handoff source
+@vis takeover target={TARGET}
+@color #FFC14D
+[own] flipping {TARGET} nodes to SOURCE control
+[own] {N} systems re-keyed :: {HASH}
+[own] quiet implant seeded :: survives reboot
+@color #6FE26F
+[ok] {TARGET} belongs to SOURCE now
+@color #FF5A5A
+[**] {TARGET} operators locked out of their own house
+@color off
+@pause 3.4
+
+# ============================================================== rapid sweep
+# The montage speeds up: one clean hit per staged enterprise.
+@pace fast
+@prompt
+$ ./daemon --sweep --targets remaining
+@color #8FD0FF
+[sweep] SOURCE fans out across the staged TARGETS
+@color off
+@pause 0.6
+
+@target
+$ breach "{TARGET}" && exfil --to source
+@vis breach target={TARGET}
+@color #6FE26F
+[ok] {TARGET} :: {RECORDS} -> SOURCE
+@color off
+@pause 1.1
+
+@target
+$ breach "{TARGET}" && drain --to source
+@vis exfil target={TARGET}
+@color #6FE26F
+[ok] {TARGET} :: {AMOUNT} -> SOURCE
+@color off
+@pause 1.1
+
+@target
+$ impersonate "{TARGET}" --as {USER} && own
+@vis takeover target={TARGET}
+@color #6FE26F
+[ok] {TARGET} :: owned by SOURCE
+@color off
+@pause 1.1
+
+@target
+$ crack "{TARGET}" && exfil --to source
+@vis crack target={TARGET}
+@color #6FE26F
+[ok] {TARGET} :: {N} identities -> SOURCE
+@color off
+@pause 1.1
+@pace normal
+
+# ============================================================== tally / exit
+@prompt
+$ ./daemon --report --source
+@vis idle
+@color #8FD0FF
+[daemon] SOURCE haul, this run:
+@color #6FE26F
+[ok] enterprises owned ............ {N}
+[ok] funds moved TARGET -> SOURCE .. {AMOUNT}
+[ok] records moved TARGET -> SOURCE  {RECORDS}
+[ok] identities held by SOURCE .... {N}
+@color #FFC14D
+[**] every TARGET dark :: SOURCE never seen
+@color off
+@pause 2.2
+
+$ ./daemon --vanish
+@color #FF5A5A
+[daemon] SOURCE withdrawing :: logs shredded :: relays burned
+@color #C8C8C8
+[daemon] nothing was ever here.
+@color off
+@pause 2.6

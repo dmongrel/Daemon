@@ -28,8 +28,8 @@ Times below are from the moment the saver starts.
 | 6 | Console | 9.5 s on | A Git Bash window opens on the left and a script starts typing commands. |
 | 7 | Attack view | ~20 s on | A larger window opens on the right with animated attack graphics tied to the console. |
 | 8 | Finale | last ~15 s | The last target falls; a closing flourish across both windows. |
-| 9 | CRT off | ~0.8 s | The picture collapses to a thin horizontal line, then to a dot, then nothing. |
-| 10 | Black | 5 s | Pure black. |
+| 9 | CRT off | ~8.75 s | The picture collapses to a thin horizontal line, then to a dot. The dot holds lit ~3 s, then embers out over ~5 s. |
+| 10 | Black | ~2 s | Pure black. |
 | — | Loop | | Back to phase 1, using the cached desktop images, with a new random seed. |
 
 Input ends the saver at any point, including during the black gap, in the
@@ -189,18 +189,22 @@ short beat (2.5 s) later the CRT switch-off begins.
 
 ### 1.9 Phase 9 — the CRT switches off
 
-Over about **0.85 s**, in three parts, entirely in bright white — like an old
-tube losing deflection:
+In bright white, like an old tube losing deflection, then its phosphor cooling:
 
-1. **Squash** (first ~30 %): the picture collapses vertically into a bright
-   white horizontal band.
-2. **Beam** (next ~50 %): the band becomes a thin white beam that recedes
-   horizontally toward the centre, a soft glow around it.
-3. **Dot** (last ~20 %): the beam shrinks to a white dot that flares and dies.
+1. **Squash** (~0.30 s): the picture collapses vertically into a bright white
+   horizontal band.
+2. **Beam** (~0.45 s): the band becomes a thin white beam that recedes
+   horizontally toward the centre, a soft glow around it, down to a point.
+3. **Dot — hold** (~3 s): a bright white dot with a soft glow sits at the centre,
+   lit and faintly alive, the way a tube's centre spot lingers after the picture
+   has gone because the phosphor still holds its charge.
+4. **Dot — decay** (~5 s): the dot embers out — bright at first, then a long
+   lingering tail — until it reaches black.
 
 ### 1.10 Phase 10 — black, then loop
 
-The screen holds pure black for **5 s**. Then the show restarts from phase 1,
+The dot has already faded to black; the screen holds black for a further **~2 s**.
+Then the show restarts from phase 1,
 reusing the cached capture images from phase 0 (the desktop is photographed only
 once, at startup) but with a **new random seed**, so the targets, imagery, hosts
 and figures are all different. All per-run state is reset, so every loop plays
@@ -290,8 +294,9 @@ cursor being hidden). The real cursor is hidden for the duration. **Preview** an
 
 ## 8. Timing and duration
 
-A run lasts as long as the script takes to play, plus the 2.5 s beat, the 0.85 s
-CRT and the 5 s black — about **3 min 30 s** with the shipping screenplay. The
+A run lasts as long as the script takes to play, plus the 2.5 s beat, the
+~8.75 s CRT switch-off (including the dot's 3 s hold and 5 s decay) and the ~2 s
+black — about **3 min 40 s** with the shipping screenplay. The
 show loops forever until input ends it. Timing is wall-clock in normal use
 (`WM_TIMER` every 16 ms); the capture hooks (§10) use a fixed `dt` of 1/60 s for
 repeatable frames.

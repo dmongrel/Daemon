@@ -54,6 +54,7 @@ private:
     // finale + loop
     double        finishedAt_ = -1;     // when the console script ended
     int           loopCount_ = 0;
+    bool          crtOnly_ = false;     // dev: jump straight to the CRT each loop
 
     double crtBeg() const;
     void   buildRun();                  // per-run setup (fields, script, windows)

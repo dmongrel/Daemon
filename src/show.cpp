@@ -1,5 +1,6 @@
 // show.cpp — timeline orchestration and teardown/payload rendering.
 #include "show.h"
+#include <cmath>
 
 // ---- phase boundaries (absolute seconds from show start) -------------------
 namespace {
@@ -14,6 +15,15 @@ constexpr double PICON_END  = 7.10;
 constexpr double MOVE_END   = 7.95;   // cursor glides to icon
 constexpr double CLICK_END  = 8.45;   // double-click
 constexpr double LAUNCH_END = 8.95;   // "starting" cursor, then console
+
+// ---- CRT switch-off timing (seconds, measured from crtBeg()) ---------------
+constexpr double CRT_SQUASH = 0.30;   // frame collapses to a white band
+constexpr double CRT_BEAM   = 0.45;   // band recedes to a point
+constexpr double CRT_DOT    = CRT_SQUASH + CRT_BEAM;   // the dot has formed
+constexpr double CRT_HOLD   = 3.00;   // phosphor dot lingers, lit
+constexpr double CRT_FADE   = 5.00;   // then decays to black
+constexpr double CRT_TOTAL  = CRT_DOT + CRT_HOLD + CRT_FADE;   // whole switch-off
+constexpr double CRT_BLACK  = 2.00;   // brief black before the loop
 }
 
 // ---- DissolveField ---------------------------------------------------------
@@ -62,7 +72,10 @@ void DissolveField::buildFromRects(const std::vector<RECT>& rects, int bMin, int
 void Show::init(const Capture* cap) {
     cap_ = cap;
     t_ = 0; finishedAt_ = -1;
+    wchar_t b[8];
+    crtOnly_ = GetEnvironmentVariableW(L"DAEMON_CRT_NOW", b, 8) > 0;  // dev: skip to the CRT
     buildRun();
+    if (crtOnly_) { finishedAt_ = 0.0; t_ = crtBeg(); }              // jump into the switch-off
 }
 
 void Show::buildRun() {
@@ -111,6 +124,7 @@ void Show::restart() {
     finishedAt_ = -1;
     t_ = 0;
     buildRun();
+    if (crtOnly_) { finishedAt_ = 0.0; t_ = crtBeg(); }   // loop straight back to the CRT
 }
 
 void Show::releaseBitmaps() {
@@ -140,8 +154,10 @@ void Show::update(double dt) {
         if (attackOpen_) { attackClock_ += dt; attack_.update(dt); }
         if (console_.finished() && finishedAt_ < 0) { finishedAt_ = t_; LogLine("finishedAt=%.3f", t_); }
     }
-    // CRT collapse (0.85s) -> 5s black -> loop.
-    if (finishedAt_ >= 0 && t_ >= crtBeg() + 0.85 + 5.0) { LogLine("restart at t=%.3f", t_); restart(); }
+    // CRT switch-off (squash -> beam -> dot hold+fade) -> brief black -> loop.
+    if (finishedAt_ >= 0 && t_ >= crtBeg() + CRT_TOTAL + CRT_BLACK) {
+        LogLine("restart at t=%.3f", t_); restart();
+    }
 }
 
 void Show::applyWorldTransform(Renderer& r) {
@@ -330,44 +346,53 @@ void Show::drawCursor(Renderer& r, D2D1_POINT_2F p, int kind) {
     }
 }
 
-void Show::drawCRT(Renderer& r, double p) {
+// e is seconds since the switch-off began (crtBeg()).
+void Show::drawCRT(Renderer& r, double e) {
     r.rt->SetTransform(D2D1::Matrix3x2F::Identity());
     float W = (float)r.pxW, H = (float)r.pxH, cx = W / 2, cy = H / 2;
-    if (p < 0.30) {                          // vertical squash into a bright white band
-        double q = EaseIn(p / 0.30);
+    if (e < CRT_SQUASH) {                     // vertical squash into a bright white band
+        double q = EaseIn(e / CRT_SQUASH);
         float hh = (float)Lerp(H, 3.0, q);
         D2D1_RECT_F dst = D2D1::RectF(0, cy - hh / 2, W, cy + hh / 2);
         r.rt->FillRectangle(dst, r.tmpBrush(0xFFFFFF, 1.0f));   // solid bright white
-    } else if (p < 0.80) {                   // bright-white beam recedes to a dot
-        double q = EaseIn((p - 0.30) / 0.50);
-        float ww = (float)Lerp(W, 2.0, q);
-        float gh = (float)Lerp(3.0, 10.0, q);
+    } else if (e < CRT_DOT) {                 // white band recedes to a point
+        double q = EaseIn((e - CRT_SQUASH) / CRT_BEAM);
+        float ww = (float)Lerp(W, 4.0, q);
+        float gh = (float)Lerp(3.0, 6.0, q);
         // soft white glow around the beam
         r.rt->FillRectangle(D2D1::RectF(cx - ww / 2, cy - gh, cx + ww / 2, cy + gh),
-                            r.tmpBrush(0xFFFFFF, 0.16f + 0.28f * (float)q));
+                            r.tmpBrush(0xFFFFFF, 0.16f + 0.24f * (float)q));
         // solid white beam, fully white (no content tint)
         r.rt->FillRectangle(D2D1::RectF(cx - ww / 2, cy - 2.0f, cx + ww / 2, cy + 2.0f),
                             r.tmpBrush(0xFFFFFF, 1.0f));
-    } else {                                 // the dot flares and dies
-        double q = EaseOut((p - 0.80) / 0.20);
-        float rad = (float)Lerp(6.0, 0.0, q);
-        float al = 1.0f - (float)q;
-        r.rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), rad + 11, rad + 11),
-                          r.tmpBrush(0xFFFFFF, al * 0.30f));
-        r.rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), rad + 2, rad + 2),
+    } else {                                  // the phosphor dot: hold lit, then decay
+        double since = e - CRT_DOT;
+        float al;
+        if (since < CRT_HOLD) {               // held, with a faint live shimmer
+            al = 0.90f + 0.10f * (float)sin(since * 6.5);
+        } else {                              // bright, then a long lingering tail
+            double f = Clamp01((since - CRT_HOLD) / CRT_FADE);
+            al = (float)pow(1.0 - f, 1.6);
+        }
+        // concentric glow + bright core, all scaled by the dot's current brightness
+        r.rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), 17.0f, 17.0f),
+                          r.tmpBrush(0xFFFFFF, al * 0.10f));
+        r.rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), 8.0f, 8.0f),
+                          r.tmpBrush(0xFFFFFF, al * 0.28f));
+        r.rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), 3.2f, 3.2f),
                           r.tmpBrush(0xFFFFFF, al));
     }
 }
 
 void Show::draw(Renderer& r) {
     double cb = crtBeg();
-    bool collapse = finishedAt_ >= 0 && t_ >= cb && t_ < cb + 0.85;
-    bool blackout = finishedAt_ >= 0 && t_ >= cb + 0.85;
+    bool collapse = finishedAt_ >= 0 && t_ >= cb && t_ < cb + CRT_TOTAL;
+    bool blackout = finishedAt_ >= 0 && t_ >= cb + CRT_TOTAL;
 
     r.rt->BeginDraw();
     r.rt->Clear(D2D1::ColorF(0, 0, 0));
     if (collapse) {
-        drawCRT(r, (t_ - cb) / 0.85);
+        drawCRT(r, t_ - cb);
     } else if (blackout) {
         // pure black
     } else {

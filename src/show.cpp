@@ -106,8 +106,21 @@ void Show::buildRun() {
     ctx_.build();
     script_ = Script{};
     std::wstring path = ResolveScriptPath();
-    if (path.empty() || !LoadScriptFile(path, ctx_, script_))
-        script_ = BuiltinDemoScript(ctx_);
+    if (!path.empty() && LoadScriptFile(path, ctx_, script_)) {
+        LogLine("script: %ls", path.c_str());
+    } else {
+        if (!path.empty()) {  // a half-read override may have moved the targets on
+            script_ = Script{};
+            ctx_ = ScriptContext{};
+            ctx_.build();
+        }
+        if (LoadEmbeddedScript(ctx_, script_)) {
+            LogLine("script: embedded");
+        } else {
+            script_ = BuiltinDemoScript(ctx_);
+            LogLine("script: built-in demo");
+        }
+    }
     console_.init(cap_, &ctx_, &script_);
     attack_.init(cap_);
     lastVis_.clear(); attackOpen_ = false; attackClock_ = 0;

@@ -134,21 +134,37 @@ void splitLines(const std::wstring& all, std::vector<std::wstring>& out) {
     out.push_back(cur);
 }
 
+bool decodeUtf8(const char* bytes, size_t n, std::wstring& out) {
+    // strip UTF-8 BOM
+    size_t off = (n >= 3 && (unsigned char)bytes[0] == 0xEF &&
+                  (unsigned char)bytes[1] == 0xBB && (unsigned char)bytes[2] == 0xBF) ? 3 : 0;
+    int wn = MultiByteToWideChar(CP_UTF8, 0, bytes + off, (int)(n - off), nullptr, 0);
+    if (wn <= 0) return false;
+    out.assign(wn, 0);
+    MultiByteToWideChar(CP_UTF8, 0, bytes + off, (int)(n - off), out.data(), wn);
+    return true;
+}
+
 bool readFileUtf8(const std::wstring& path, std::wstring& out) {
     FILE* f = _wfopen(path.c_str(), L"rb");
     if (!f) return false;
     fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
     if (n <= 0) { fclose(f); return false; }
     std::string bytes((size_t)n, 0);
-    fread(bytes.data(), 1, n, f);
+    size_t got = fread(bytes.data(), 1, n, f);
     fclose(f);
-    // strip UTF-8 BOM
-    size_t off = (bytes.size() >= 3 && (unsigned char)bytes[0] == 0xEF &&
-                  (unsigned char)bytes[1] == 0xBB && (unsigned char)bytes[2] == 0xBF) ? 3 : 0;
-    int wn = MultiByteToWideChar(CP_UTF8, 0, bytes.data() + off, (int)(bytes.size() - off), nullptr, 0);
-    out.assign(wn, 0);
-    MultiByteToWideChar(CP_UTF8, 0, bytes.data() + off, (int)(bytes.size() - off), out.data(), wn);
-    return true;
+    return decodeUtf8(bytes.data(), got, out);
+}
+
+// The screenplay compiled into the .scr (daemon.rc, resource 101).
+bool readEmbedded(std::wstring& out) {
+    HRSRC res = FindResourceW(nullptr, MAKEINTRESOURCEW(101), MAKEINTRESOURCEW(10) /* RT_RCDATA */);
+    if (!res) return false;
+    HGLOBAL h = LoadResource(nullptr, res);
+    DWORD   n = SizeofResource(nullptr, res);
+    const char* bytes = h ? static_cast<const char*>(LockResource(h)) : nullptr;
+    if (!bytes || n == 0) return false;
+    return decodeUtf8(bytes, n, out);
 }
 
 std::wstring firstWord(const std::wstring& s, size_t start, size_t& after) {
@@ -162,9 +178,19 @@ std::wstring firstWord(const std::wstring& s, size_t start, size_t& after) {
 
 } // namespace
 
+static bool parseScript(const std::wstring& all, ScriptContext& ctx, Script& out);
+
 bool LoadScriptFile(const std::wstring& path, ScriptContext& ctx, Script& out) {
     std::wstring all;
-    if (!readFileUtf8(path, all)) return false;
+    return readFileUtf8(path, all) && parseScript(all, ctx, out);
+}
+
+bool LoadEmbeddedScript(ScriptContext& ctx, Script& out) {
+    std::wstring all;
+    return readEmbedded(all) && parseScript(all, ctx, out);
+}
+
+static bool parseScript(const std::wstring& all, ScriptContext& ctx, Script& out) {
     std::vector<std::wstring> lines;
     splitLines(all, lines);
 
@@ -314,8 +340,5 @@ std::wstring ResolveScriptPath() {
             if (GetFileAttributesW(d.c_str()) != INVALID_FILE_ATTRIBUTES) return d;
         }
     }
-    // project docs
-    const wchar_t* fixed = L"C:\\_C_Projects\\Daemon\\docs\\daemon.script";
-    if (GetFileAttributesW(fixed) != INVALID_FILE_ATTRIBUTES) return fixed;
     return L"";
 }

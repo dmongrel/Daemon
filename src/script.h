@@ -44,9 +44,12 @@ struct Script {
 // @target directives advance). Returns false if the file can't be read.
 bool LoadScriptFile(const std::wstring& path, ScriptContext& ctx, Script& out);
 
+// The shipping screenplay compiled into the .scr. False if it is missing or empty.
+bool LoadEmbeddedScript(ScriptContext& ctx, Script& out);
+
 // A short, benign built-in script so the console works with no file present.
 Script BuiltinDemoScript(ScriptContext& ctx);
 
-// Resolve the script path: DAEMON_SCRIPT, else daemon.script next to the exe
-// or in the project docs/, else empty (caller falls back to the demo).
+// Resolve an override script: DAEMON_SCRIPT, else daemon.script next to the exe,
+// else empty (the caller then uses the embedded screenplay, then the demo).
 std::wstring ResolveScriptPath();

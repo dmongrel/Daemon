@@ -32,7 +32,7 @@ all: $(TARGET)
 $(OBJDIR) $(BUILDTMP):
 	mkdir -p $@
 
-$(RES): daemon.rc daemon.manifest | $(BUILDTMP)
+$(RES): daemon.rc daemon.manifest docs/daemon.script | $(BUILDTMP)
 	mkdir -p $(dir $@)
 	$(WINDRES) daemon.rc -O coff -o $@
 

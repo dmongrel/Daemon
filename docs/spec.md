@@ -230,13 +230,14 @@ Nothing is sent, touched or written (outside the dev hooks in §10). See
 
 ## 3. The console script
 
-The left window is driven by an external script file so the screenplay can be
-rewritten without rebuilding. Resolution order:
+The left window is driven by a script. The shipping screenplay is compiled into
+the `.scr` as a resource (`daemon.rc`, id 101), so the saver needs no other file;
+an outside script can still replace it without rebuilding. Resolution order:
 
 1. `%DAEMON_SCRIPT%`, if set and the file exists;
 2. `daemon.script` next to the executable;
-3. `docs\daemon.script` in the project tree;
-4. a small built-in demo, if none of the above is found.
+3. the screenplay compiled into the executable;
+4. a small demo in the code, if none of the above loads.
 
 The format (directives, `$`/output lines, `@vis` cues, `@color`, tokens) is
 specified in full in [script.md](script.md). The shipping screenplay is

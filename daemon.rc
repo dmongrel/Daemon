@@ -5,4 +5,7 @@ BEGIN
     1 "Daemon"
 END
 
+// The shipping screenplay, built in; a daemon.script beside the .scr overrides it.
+101 RCDATA "docs/daemon.script"
+
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "daemon.manifest"

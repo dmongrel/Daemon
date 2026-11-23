@@ -39,20 +39,17 @@ None of these images is written to disk. [docs/spec.md](docs/spec.md) has the fu
 
 Download `daemon.scr` from the [latest release](https://github.com/dmongrel/Daemon/releases/latest).
 Right-click it and choose **Install**, or copy it to `C:\Windows\System32` and pick **Daemon** in
-Screen Saver Settings.
-
-The console's screenplay is a separate file, `daemon.script`, also on the release. Put it in the
-same folder as `daemon.scr`. Without it, the saver plays a short built-in demo instead.
+Screen Saver Settings. The screenplay is built in, so the `.scr` is all you need.
 
 ## The screenplay
 
-The console is driven by a plain-text script, so the show can be rewritten without rebuilding.
-Daemon looks for it in this order:
+The console is driven by a plain-text script. The shipping one is compiled into the `.scr`, and
+another can be swapped in without rebuilding. Daemon plays the first of these it finds:
 
 1. the file named by `DAEMON_SCRIPT`, if it exists;
 2. `daemon.script` next to the `.scr`;
-3. `docs\daemon.script` in the project tree;
-4. otherwise, a small built-in demo.
+3. the screenplay built into the `.scr`;
+4. a small demo in the code, if all else fails.
 
 Lines starting `$` are typed commands, plain lines are output, and `@` directives set the pace,
 colour and target and cue the attack view's animations. Tokens such as `{TARGET}` and `{HOST}`
@@ -106,13 +103,13 @@ src/main.cpp            modes, windows, input, the frame loop, capture hook
 src/capture.*           phase 0: screenshot, wallpaper, clean desktop, taskbar, window and icon geometry
 src/show.*              the sequence: windows closing, desktop and icons deleted, payload, CRT off
 src/console.*           the fake Git Bash window
-src/script.*            the screenplay parser, tokens, built-in demo, script lookup
+src/script.*            the screenplay parser, tokens, embedded copy, demo, script lookup
 src/attack.*            the attack view and its scenes
 src/renderer.*          Direct2D / DirectWrite drawing
 src/common.*            logging, seed, shared helpers
 docs/spec.md            the full specification
 docs/script.md          the screenplay format
-docs/daemon.script      the shipping screenplay
+docs/daemon.script      the shipping screenplay, compiled into the .scr (daemon.rc)
 ```
 
 ## License
